@@ -265,7 +265,10 @@ pub const Player = struct { // MARK: Player
 };
 
 pub const World = struct { // MARK: World
-	pub const dayCycle: u63 = 12000; // Length of one in-game day in 100ms. Midnight is at DAY_CYCLE/2. Sunrise and sunset each take about 1/16 of the day. Currently set to 20 minutes
+	pub const dayCycle: u63 = 12000; // Length of one in-game day in 100ms. Currently set to 20 minutes
+	const dayDuration:u63 = 7200; // Length of daytime in one in-game day in 100ms. Currently set to 12 minutes
+	const sunRiseDuration:u63 = 750; // Length of sunrise in 100ms. Currently set to 1m:15s (1/16th day)
+	const twilightDuration:u63 = 750; // Length of twilight in 100ms. Currently set to 1m:15s (1/16th day)
 
 	conn: *Connection,
 	manager: *ConnectionManager,
