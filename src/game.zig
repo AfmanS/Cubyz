@@ -265,10 +265,12 @@ pub const Player = struct { // MARK: Player
 };
 
 pub const World = struct { // MARK: World
-	pub const dayCycle: u63 = 12000; // Length of one in-game day in 100ms. Currently set to 20 minutes
-	const dayDuration:u63 = 7200; // Length of daytime in one in-game day in 100ms. Currently set to 12 minutes
-	const sunRiseDuration:u63 = 750; // Length of sunrise in 100ms. Currently set to 1m:15s (1/16th day)
-	const twilightDuration:u63 = 750; // Length of twilight in 100ms. Currently set to 1m:15s (1/16th day)
+	// Lengths of parts of the in-game day cycle in 100ms
+	const dayDuration:u63 = 7200; // 12 minutes
+	const duskDuration:u63 = 1200; // 2 minutes
+	const nightDuration:u63 = 4800; // 8 minutes
+	const dawnDuration:u63 = 1200; // 2 minutes
+	pub const dayCycle: u63 = dayDuration + duskDuration + nightDuration + dawnDuration; // 24 minutes or 14400 ticks
 
 	conn: *Connection,
 	manager: *ConnectionManager,
@@ -376,36 +378,71 @@ pub const World = struct { // MARK: World
 	}
 
 	fn dayNightLightFactor(gameTime: i64) struct { f32, Vec3f } {
-		const dayTime = @abs(@mod(gameTime, dayCycle) - dayCycle/2);
-		if (dayTime < dayCycle/4 - dayCycle/16) {
-			return .{0.1, @splat(0)};
-		}
-		if (dayTime > dayCycle/4 + dayCycle/16) {
+		var periodTime = @mod(gameTime, dayCycle);
+		if (periodTime < dayDuration) {
 			return .{1, @splat(1)};
 		}
-		var skyColorFactor: Vec3f = undefined;
-		// b:
-		if (dayTime > dayCycle/4) {
-			skyColorFactor[2] = @as(f32, @floatFromInt(dayTime - dayCycle/4))/@as(f32, @floatFromInt(dayCycle/16));
-		} else {
-			skyColorFactor[2] = 0;
-		}
-		// g:
-		if (dayTime > dayCycle/4 + dayCycle/32) {
-			skyColorFactor[1] = 1;
-		} else if (dayTime > dayCycle/4 - dayCycle/32) {
-			skyColorFactor[1] = 1 - @as(f32, @floatFromInt(dayCycle/4 + dayCycle/32 - dayTime))/@as(f32, @floatFromInt(dayCycle/16));
-		} else {
-			skyColorFactor[1] = 0;
-		}
-		// r:
-		if (dayTime > dayCycle/4) {
-			skyColorFactor[0] = 1;
-		} else {
-			skyColorFactor[0] = 1 - @as(f32, @floatFromInt(dayCycle/4 - dayTime))/@as(f32, @floatFromInt(dayCycle/16));
+
+		periodTime -= dayDuration;
+		
+		if (periodTime < duskDuration) {
+			var skyColorFactor: Vec3f = undefined;
+			// b:
+			if (periodTime < duskDuration/2) {
+				skyColorFactor[2] = @as(f32, @floatFromInt(duskDuration/2 - periodTime))/@as(f32, @floatFromInt(duskDuration/2));
+			} else {
+				skyColorFactor[2] = 0;
+			}
+			// g:
+			if (periodTime < duskDuration/4) {
+				skyColorFactor[1] = 1;
+			} else if (periodTime < 3*duskDuration/4) {
+				skyColorFactor[1] = @as(f32, @floatFromInt(3*duskDuration/4 - periodTime))/@as(f32, @floatFromInt(duskDuration/2));
+			} else {
+				skyColorFactor[1] = 0;
+			}
+			// r:
+			if (periodTime < duskDuration/2) {
+				skyColorFactor[0] = 1;
+			} else {
+				skyColorFactor[0] = @as(f32, @floatFromInt(duskDuration - periodTime))/@as(f32, @floatFromInt(duskDuration/2));
+			}
+
+			const ambientLight = 0.1 + 0.9*@as(f32, @floatFromInt(duskDuration - periodTime))/@as(f32, @floatFromInt(duskDuration));
+			return .{ambientLight, skyColorFactor};
 		}
 
-		const ambientLight = 0.1 + 0.9*@as(f32, @floatFromInt(dayTime - (dayCycle/4 - dayCycle/16)))/@as(f32, @floatFromInt(dayCycle/8));
+		periodTime -= duskDuration;
+
+		if (periodTime < nightDuration) {
+			return .{0.1, @splat(0)};
+		}
+
+		periodTime -= nightDuration;
+
+		var skyColorFactor: Vec3f = undefined;
+		// b:
+		if (periodTime < dawnDuration/2) {
+			skyColorFactor[2] = 0;
+		} else {
+			skyColorFactor[2] = @as(f32, @floatFromInt(periodTime - dawnDuration/2))/@as(f32, @floatFromInt(dawnDuration/2));
+		}
+		// g:
+		if (periodTime < dawnDuration/4) {
+			skyColorFactor[1] = 0;
+		} else if (periodTime < 3*dawnDuration/4) {
+			skyColorFactor[1] = @as(f32, @floatFromInt(periodTime - dawnDuration/4))/@as(f32, @floatFromInt(dawnDuration/2));
+		} else {
+			skyColorFactor[1] = 1;
+		}
+		// r:
+		if (periodTime < dawnDuration/2) {
+			skyColorFactor[0] = @as(f32, @floatFromInt(periodTime))/@as(f32, @floatFromInt(dawnDuration/2));
+		} else {
+			skyColorFactor[0] = 1;
+		}
+
+		const ambientLight = 0.1 + 0.9*@as(f32, @floatFromInt(periodTime))/@as(f32, @floatFromInt(dawnDuration));
 		return .{ambientLight, skyColorFactor};
 	}
 

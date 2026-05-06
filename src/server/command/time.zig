@@ -14,7 +14,7 @@ pub fn execute(args: []const u8, source: *User) void {
 		if (std.ascii.eqlIgnoreCase(arg, "day")) {
 			gameTime = 0;
 		} else if (std.ascii.eqlIgnoreCase(arg, "night")) {
-			gameTime = main.server.ServerWorld.dayCycle/2;
+			gameTime = main.server.ServerWorld.nightStart;
 		} else if (std.ascii.eqlIgnoreCase(arg, "start")) {
 			main.server.world.?.doGameTimeCycle = true;
 			return;

@@ -419,7 +419,8 @@ pub const ChunkManager = struct { // MARK: ChunkManager
 pub const worldDataVersion: u32 = 5;
 
 pub const ServerWorld = struct { // MARK: ServerWorld
-	pub const dayCycle: u31 = 12000; // Length of one in-game day in units of 100ms. Midnight is at DAY_CYCLE/2. Sunrise and sunset each take about 1/16 of the day. Currently set to 20 minutes
+	// Lengths of parts of the in-game day cycle are defined in game.zig
+	pub const nightStart: u31 = 8400; // Start time of in-game night in 100ms
 
 	itemDropManager: ItemDropManager = undefined,
 	blockPalette: *main.assets.Palette = undefined,
